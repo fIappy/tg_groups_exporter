@@ -1,0 +1,5 @@
+tg_export
+**/__pycache__
+.zenflow
+.zencoder
+exporter.session
