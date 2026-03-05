@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  tg-exporter:
+    build: .
+    container_name: tg-exporter
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./tg_export:/app/tg_export
+      - ./config.yaml:/app/config.yaml
+      - exporter.session:/app/exporter.session
+    restart: unless-stopped

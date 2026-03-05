@@ -228,6 +228,7 @@ current_exporter = None
 export_logs = []  # Cache to keep recent logs
 active_websockets = set()
 auth_code_queue = asyncio.Queue()
+export_task_ref = None  # Hold a reference to the task so it isn't garbage collected
 
 async def broadcast_ws(message: dict):
     global active_websockets
@@ -407,7 +408,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 while not auth_code_queue.empty():
                     auth_code_queue.get_nowait()
                     
-                asyncio.create_task(run_export_task(cfg, links))
+                global export_task_ref
+                export_task_ref = asyncio.create_task(run_export_task(cfg, links))
                 
             elif data.get("action") == "submit_code":
                 code = data.get("code")

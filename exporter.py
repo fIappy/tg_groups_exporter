@@ -202,34 +202,28 @@ class TelegramExporter:
         
         # Load existing messages if JSON exists to support resuming partially
         jw = None
-        min_id = 0
+        highest_id = 0
+        lowest_id = 0
+        existing_ids = set()
         if "json" in config.OUTPUT_FORMATS:
             jw = JSONWriter(group_dir)
             existing_messages = jw.load_existing_messages()
             if existing_messages:
                 messages_data.extend(existing_messages)
                 msg_count = len(messages_data)
-                # Messages are typically saved with the newest having larger IDs
-                # We find the highest ID to know where to resume (fetch messages newer than min_id)
-                highest_id = max((m.get("message_id", 0) for m in existing_messages), default=0)
-                if highest_id > 0:
-                    min_id = highest_id
-                    logger.info(f"Resuming export. Found {len(existing_messages)} existing messages. Fetching newer than ID {min_id}.")
+                existing_ids = {m.get("message_id") for m in existing_messages if m.get("message_id")}
+                if existing_ids:
+                    highest_id = max(existing_ids)
+                    lowest_id = min(existing_ids)
+                    logger.info(f"Resuming export. Found {len(existing_ids)} existing messages.")
+                    logger.info(f"Will fetch messages newer than ID {highest_id} and older than ID {lowest_id}.")
             
         # Create a progress bar that updates as we fetch messages
         pbar = tqdm(desc=f"Fetching {safe_name[:15]}", unit="msg")
         
-        try:
-            # We want all messages from start_date to now
-            # In Telethon, if we want to iterate from older to newer starting from a date,
-            # offset_date and reverse=True behaves weirdly sometimes.
-            # Usually, no reverse just fetches from newest to oldest. 
-            # If we specify min_id, we will only fetch messages NEWER than min_id.
-            # If we also want reverse=True (oldest to newest), we can fetch from min_id upwards.
-            # However, iter_messages by default is newest to oldest. 
-            # Wait, if we use min_id, it fetches messages newer than min_id. So we get the ones we missed since last time.
-            
-            async for msg in self.client.iter_messages(entity, min_id=min_id):
+        async def fetch_loop(kwargs_dict):
+            nonlocal msg_count
+            async for msg in self.client.iter_messages(entity, **kwargs_dict):
                 if self.is_cancelled:
                     logger.info("Export cancelled by user. Saving progress...")
                     break
@@ -242,9 +236,13 @@ class TelegramExporter:
                 if msg_date < self.start_date:
                     break
                 
+                if msg.id in existing_ids:
+                    continue
+                    
                 try:
                     msg_dict = await self.extract_message(msg, group_dir, pbar)
                     messages_data.append(msg_dict)
+                    existing_ids.add(msg.id)
                     msg_count += 1
                     pbar.update(1)
                     
@@ -260,7 +258,18 @@ class TelegramExporter:
                     await asyncio.sleep(e.seconds + 5)
                 except Exception as e:
                     logger.error(f"Error extracting message {msg.id} in {link}: {e}", exc_info=True)
-                    # We continue despite errors
+
+        try:
+            if highest_id > 0:
+                # Phase 1: Fetch newer messages
+                await fetch_loop({"min_id": highest_id})
+                # Phase 2: Fetch older messages (if not cancelled)
+                if not self.is_cancelled and lowest_id > 0:
+                    await fetch_loop({"offset_id": lowest_id})
+            else:
+                # Fresh export
+                await fetch_loop({})
+                
         except Exception as e:
             logger.error(f"Unexpected error during export loop: {e}", exc_info=True)
             # Make sure we still generate the results with what we have

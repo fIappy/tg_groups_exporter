@@ -43,9 +43,20 @@ Instead of modifying Python scripts, the project uses a `config.yaml` file for c
 
 ### Usage
 
-There are two ways to use this tool: via **Command Line (CLI)** or **Web UI**.
+There are three ways to use this tool: via **Docker (Recommended)**, **Web UI**, or **Command Line (CLI)**.
 
-#### 1. Web UI (Recommended)
+#### 1. Docker Deployment (Recommended)
+Using Docker is the easiest way to run the Web UI without worrying about Python environments. A `docker-compose.yml` is provided for quick startup.
+
+1. Ensure Docker and Docker Compose are installed.
+2. Run the container:
+   ```bash
+   docker-compose up -d
+   ```
+3. Open `http://localhost:8000` in your web browser. 
+4. The downloaded data will be safely persisted in the `tg_export/` folder on your host machine.
+
+#### 2. Web UI (Local Python)
 The Web UI provides a graphical interface to configure parameters, input group links, login to Telegram, and view live export progress.
 
 Start the Web UI server:
@@ -129,9 +140,20 @@ tg_export/
 
 ### 使用方法
 
-你可以通过 **命令行（CLI）** 或者 **Web 界面** 来使用本工具。
+你可以通过 **Docker（推荐）**、**Web 界面** 或者 **命令行（CLI）** 来使用本工具。
 
-#### 1. Web 界面（推荐）
+#### 1. Docker 容器部署（推荐）
+使用 Docker 是最简单的方式，无需配置 Python 环境，我们提供了 `docker-compose.yml` 方便你一键启动。
+
+1. 确保你的系统已安装 Docker 和 Docker Compose。
+2. 启动容器：
+   ```bash
+   docker-compose up -d
+   ```
+3. 在浏览器中打开 `http://localhost:8000` 即可开始使用。
+4. 所有导出的数据将会安全地保存在你本地的 `tg_export/` 目录中。
+
+#### 2. Web 界面（本地运行）
 Web 界面提供了一个直观的操作方式，你可以直接在页面上填写参数、填入群组链接、进行 Telegram 登录认证，以及实时查看导出进度。
 
 启动 Web 服务：
