@@ -56,6 +56,11 @@ html_template = """
             <label>Group Links (one per line):</label>
             <textarea id="group_links" rows="5"></textarea>
         </div>
+        <div class="form-group">
+            <label style="display: inline-block;">
+                <input type="checkbox" id="video_cover_only" {video_cover_checked} style="width: auto;"> Only download video covers (thumbnails)
+            </label>
+        </div>
         
         <button id="start-btn" onclick="startExport()">Start Export</button>
         <button id="stop-btn" onclick="stopExport()" style="background-color: #cc0000; display: none;">Stop Export</button>
@@ -132,6 +137,7 @@ html_template = """
             const phone = document.getElementById('phone').value;
             const start_date = document.getElementById('start_date').value;
             const group_links = document.getElementById('group_links').value;
+            const video_cover_only = document.getElementById('video_cover_only').checked;
 
             if (!group_links.trim()) {
                 alert("Please provide at least one group link.");
@@ -153,7 +159,7 @@ html_template = """
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     action: 'start',
-                    config: { api_id, api_hash, phone, start_date },
+                    config: { api_id, api_hash, phone, start_date, video_cover_only },
                     links: group_links.split('\\n').filter(l => l.trim())
                 }));
                 setTimeout(checkStatus, 1000);
@@ -220,6 +226,7 @@ async def get_index():
     html = html.replace("{api_hash}", str(config.API_HASH or ""))
     html = html.replace("{phone}", str(config.PHONE or ""))
     html = html.replace("{start_date}", str(config.START_DATE or "2024-01-01"))
+    html = html.replace("{video_cover_checked}", "checked" if getattr(config, "VIDEO_COVER_ONLY", False) else "")
     return html
 
 # Global state for tracking export

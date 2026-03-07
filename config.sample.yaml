@@ -6,6 +6,7 @@ start_date: "2024-01-01"
 output_dir: "./tg_export"
 download_media: true
 max_media_size_mb: 50
+video_cover_only: false
 media_types_to_download:
   - "photo"
   - "video"

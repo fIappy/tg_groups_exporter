@@ -40,6 +40,7 @@ Instead of modifying Python scripts, the project uses a `config.yaml` file for c
 - `phone`: Your login phone number (including country code, e.g., `85233334444`).
 - `start_date`: Fetch messages starting from this date (e.g., `2025-01-01`).
 - `max_media_size_mb`: Limit the maximum size of media to download.
+- `video_cover_only`: If set to `true`, only downloads lightweight thumbnails/covers for videos instead of the full video files, significantly saving disk space.
 
 ### Usage
 
@@ -137,6 +138,7 @@ tg_export/
 - `phone`：用于登录的手机号码（需包含国家区号，如 `85233334444`）。
 - `start_date`：拉取消息的起始日期（例如 `2025-01-01`）。
 - `max_media_size_mb`：媒体文件下载的体积上限。
+- `video_cover_only`：如果设置为 `true`，对于视频将只下载其封面/缩略图，不再下载完整的视频文件，极大节省磁盘空间。
 
 ### 使用方法
 

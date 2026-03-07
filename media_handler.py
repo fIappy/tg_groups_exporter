@@ -163,8 +163,14 @@ class MediaHandler:
         if m_type not in self.allowed_types:
             return {"media_download_status": "skipped_type"}
             
+        # Check if we should only download video cover
+        is_video_cover_only = False
+        if m_type == "video" and getattr(config, "VIDEO_COVER_ONLY", False):
+            is_video_cover_only = True
+            
         size = meta.get("media_file_size_bytes", 0)
-        if size > self.max_size:
+        # Skip size check for video covers since thumbnails are small
+        if size > self.max_size and not is_video_cover_only:
             return {"media_download_status": "skipped_too_large"}
             
         # Determine path: media/YYYY-MM/filename
@@ -174,42 +180,62 @@ class MediaHandler:
         os.makedirs(absolute_dir, exist_ok=True)
         
         file_name = meta["media_file_name"]
+        
+        if is_video_cover_only:
+            # Change extension to .jpg for the thumbnail
+            base_name = os.path.splitext(file_name)[0]
+            file_name = f"{base_name}_cover.jpg"
+            meta["media_file_name"] = file_name # update the meta so other parts know
+            
         relative_path = os.path.join(relative_dir, file_name).replace("\\", "/")
         absolute_path = os.path.join(absolute_dir, file_name)
         
         # Check if already downloaded
         if os.path.exists(absolute_path) and os.path.getsize(absolute_path) > 0:
             return {
+                "media_file_name": file_name,
                 "media_local_path": relative_path,
                 "media_download_status": "downloaded"
             }
             
         # Download
         try:
-            logger.info(f"Downloading media: {file_name} ({format_size(size)})")
+            if is_video_cover_only:
+                logger.info(f"Downloading video cover: {file_name}")
+            else:
+                logger.info(f"Downloading media: {file_name} ({format_size(size)})")
             # We could add a simple progress bar or rely on general progress
             # We can use telethon's download_media
             await asyncio.sleep(0.5) # Anti-ban delay
             
-            if pbar_manager is not None:
+            if pbar_manager is not None and not is_video_cover_only:
                 pbar = tqdm(total=size, desc=f"DL {file_name[:20]}", leave=False, unit='B', unit_scale=True)
                 def prog_callback(current, total):
                     pbar.n = current
                     pbar.refresh()
             else:
                 prog_callback = None
+                pbar = None
+                
+            # For downloading thumbnails, Telethon accepts an integer index, or -1 for the largest thumb.
+            # If thumb=True is passed, it often downloads the smallest 'stripped' thumbnail which might be a blurry black box.
+            # Passing thumb=-1 ensures we get the highest quality thumbnail available.
+            kwargs = {"progress_callback": prog_callback}
+            if is_video_cover_only:
+                kwargs["thumb"] = -1
                 
             await self.client.download_media(
                 message, 
                 file=absolute_path, 
-                progress_callback=prog_callback
+                **kwargs
             )
             
-            if pbar_manager is not None:
+            if pbar is not None:
                 pbar.close()
                 
             logger.info(f"Successfully downloaded: {file_name}")
             return {
+                "media_file_name": file_name,
                 "media_local_path": relative_path,
                 "media_download_status": "downloaded"
             }

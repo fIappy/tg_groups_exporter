@@ -18,6 +18,7 @@ class Config:
         self.OUTPUT_DIR = data.get("output_dir", "./tg_export")
         self.DOWNLOAD_MEDIA = data.get("download_media", True)
         self.MAX_MEDIA_SIZE_MB = data.get("max_media_size_mb", 50)
+        self.VIDEO_COVER_ONLY = data.get("video_cover_only", False)
         self.MEDIA_TYPES_TO_DOWNLOAD = data.get("media_types_to_download", ["photo", "video", "document", "audio", "voice", "sticker"])
         self.REQUEST_DELAY = data.get("request_delay", 1.5)
         self.BATCH_SIZE = data.get("batch_size", 100)
@@ -37,6 +38,7 @@ class Config:
             "output_dir": self.OUTPUT_DIR,
             "download_media": self.DOWNLOAD_MEDIA,
             "max_media_size_mb": self.MAX_MEDIA_SIZE_MB,
+            "video_cover_only": self.VIDEO_COVER_ONLY,
             "media_types_to_download": self.MEDIA_TYPES_TO_DOWNLOAD,
             "request_delay": self.REQUEST_DELAY,
             "batch_size": self.BATCH_SIZE,
