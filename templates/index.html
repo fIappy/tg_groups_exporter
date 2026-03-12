@@ -64,6 +64,7 @@
             overflow-y: auto;
             padding: 20px;
             scroll-behavior: smooth;
+            content-visibility: auto; /* Optimization for Chromium */
         }
         .nav-col {
             width: 250px;
@@ -87,6 +88,16 @@
             display: flex;
             margin-bottom: 15px;
             max-width: 800px;
+            /* Lazy rendering classes */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            content-visibility: auto;
+            contain-intrinsic-size: 100px;
+        }
+        .message.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
         .avatar {
             width: 42px;
@@ -203,6 +214,10 @@
                     <div class="msg-header">
                         <div>
                             <span class="sender-name">{{ msg.sender_name }}</span>
+                            <span class="sender-id" style="font-size:0.85em; opacity:0.6; margin-left:5px;">(ID: {{ msg.sender_id }})</span>
+                            {% if msg.sender_phone %}
+                            <span class="sender-phone" style="font-size:0.8em; background:#28a745; color:#fff; padding:2px 4px; border-radius:4px; margin-left:5px;">📞 {{ msg.sender_phone }}</span>
+                            {% endif %}
                             {% if msg.sender_username %}
                             <span class="sender-username">@{{ msg.sender_username }}</span>
                             {% endif %}
@@ -232,7 +247,7 @@
                         <div class="msg-photo">
                             {% if msg.media_local_path %}
                             <a href="{{ msg.media_local_path }}" target="_blank">
-                                <img src="{{ msg.media_local_path }}" alt="Photo">
+                                <img src="" data-src="{{ msg.media_local_path }}" alt="Photo">
                             </a>
                             {% else %}
                             [Photo] Size: {{ msg.media_file_size_readable }}
@@ -244,7 +259,7 @@
                                 {% if msg.media_local_path.endswith('.jpg') %}
                                 <div style="position: relative; display: inline-block;">
                                     <a href="{{ msg.media_local_path }}" target="_blank">
-                                        <img src="{{ msg.media_local_path }}" alt="Video Cover" style="max-width: 300px; border-radius: 8px;">
+                                        <img src="" data-src="{{ msg.media_local_path }}" alt="Video Cover" style="max-width: 300px; border-radius: 8px;">
                                     </a>
                                     <span style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 5px; border-radius: 4px; font-size: 0.8em; pointer-events: none;">▶ {{ msg.media_duration_seconds }}s (Cover Only)</span>
                                 </div>
@@ -252,7 +267,7 @@
                                     Video Original Size: {{ msg.media_file_size_readable }} (Not Downloaded)
                                 </div>
                                 {% else %}
-                                <video src="{{ msg.media_local_path }}" controls></video>
+                                <video src="" data-src="{{ msg.media_local_path }}" controls></video>
                                 {% endif %}
                             {% else %}
                             [Video] {{ msg.media_duration_seconds }}s, Size: {{ msg.media_file_size_readable }}
@@ -261,7 +276,7 @@
                         {% elif msg.media_type == 'sticker' %}
                         <div class="msg-sticker">
                             {% if msg.media_local_path %}
-                            <img src="{{ msg.media_local_path }}" alt="{{ msg.sticker_emoji }}">
+                            <img src="" data-src="{{ msg.media_local_path }}" alt="{{ msg.sticker_emoji }}">
                             {% else %}
                             [Sticker] {{ msg.sticker_emoji }}
                             {% endif %}
@@ -310,7 +325,8 @@
                             <span>{{ admin.name }}</span>
                         </div>
                         <div class="nav-item-secondary">
-                            {% if admin.username %}@{{ admin.username }}{% endif %}
+                            ID: {{ admin.id }}
+                            {% if admin.username %} | @{{ admin.username }}{% endif %}
                             {% if admin.phone %} | {{ admin.phone }}{% endif %}
                         </div>
                     </li>
@@ -329,7 +345,8 @@
                             <span class="user-count">{{ u.count }}</span>
                         </div>
                         <div class="nav-item-secondary">
-                            {% if u.username %}@{{ u.username }}{% endif %}
+                            ID: {{ u.id }}
+                            {% if u.username %} | @{{ u.username }}{% endif %}
                             {% if u.phone %} | {{ u.phone }}{% endif %}
                         </div>
                     </li>
@@ -391,6 +408,41 @@
                 });
             }, 300);
         }
+
+        // Lazy loading of messages using IntersectionObserver
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: document.getElementById('messages-col'),
+                rootMargin: '100px', // Load messages slightly before they enter the viewport
+                threshold: 0.01
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        
+                        // Optionally, if you have elements with data-src for images/videos
+                        const lazyMedia = entry.target.querySelectorAll('[data-src]');
+                        lazyMedia.forEach(media => {
+                            media.src = media.getAttribute('data-src');
+                            media.removeAttribute('data-src');
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.message').forEach(msg => {
+                observer.observe(msg);
+            });
+            
+            // To ensure initial view is populated faster if observer is slightly delayed
+            setTimeout(() => {
+                const col = document.getElementById('messages-col');
+                const initialMessages = Array.from(document.querySelectorAll('.message')).slice(0, 30);
+                initialMessages.forEach(msg => msg.classList.add('visible'));
+            }, 100);
+        });
     </script>
 </body>
 </html>
