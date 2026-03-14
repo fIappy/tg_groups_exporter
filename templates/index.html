@@ -283,8 +283,13 @@
                         </div>
                         {% else %}
                         <div class="msg-document">
+                            {% if msg.media_local_path %}
                             📎 <a href="{{ msg.media_local_path }}" target="_blank">{{ msg.media_file_name }}</a>
                             <span style="margin-left:10px;opacity:0.6;">{{ msg.media_file_size_readable }}</span>
+                            {% else %}
+                            📎 <span>{{ msg.media_file_name }}</span>
+                            <span style="margin-left:10px;opacity:0.6;">{{ msg.media_file_size_readable }} (Not Downloaded)</span>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>

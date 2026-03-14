@@ -5,7 +5,8 @@ import telethon
 from telethon import TelegramClient
 from telethon.tl.types import (
     User, Chat, Channel, Message, PeerUser, PeerChat, PeerChannel,
-    MessageActionPinMessage, MessageService, ChannelParticipantsAdmins
+    MessageActionPinMessage, MessageService, ChannelParticipantsAdmins,
+    MessageActionChatAddUser, MessageActionChatDeleteUser, MessageActionChatJoinedByLink
 )
 from telethon.errors import FloodWaitError, ChannelPrivateError
 from tqdm.asyncio import tqdm
@@ -153,11 +154,13 @@ class TelegramExporter:
 
         # Service messages
         if isinstance(msg, MessageService):
+            if getattr(msg, 'action', None) and isinstance(msg.action, (MessageActionChatAddUser, MessageActionChatDeleteUser, MessageActionChatJoinedByLink)):
+                return None
             data["message_type"] = "service"
-            if isinstance(msg.action, MessageActionPinMessage):
+            if getattr(msg, 'action', None) and isinstance(msg.action, MessageActionPinMessage):
                 data["text"] = "[Pinned a message]"
             else:
-                data["text"] = f"[Service message: {type(msg.action).__name__}]"
+                data["text"] = f"[Service message: {type(getattr(msg, 'action', None)).__name__}]"
             data["text_html"] = data["text"]
             return data
 
@@ -223,9 +226,14 @@ class TelegramExporter:
         
         async def fetch_loop(kwargs_dict):
             nonlocal msg_count
+            max_msgs = getattr(config, "MAX_MESSAGES_PER_GROUP", 0)
             async for msg in self.client.iter_messages(entity, **kwargs_dict):
                 if self.is_cancelled:
                     logger.info("Export cancelled by user. Saving progress...")
+                    break
+                
+                if max_msgs > 0 and msg_count >= max_msgs:
+                    logger.info(f"Reached max_messages_per_group limit ({max_msgs}). Stopping.")
                     break
                     
                 # Ensure msg.date is aware, then compare
@@ -241,6 +249,9 @@ class TelegramExporter:
                     
                 try:
                     msg_dict = await self.extract_message(msg, group_dir, pbar)
+                    if msg_dict is None:
+                        continue
+                    
                     messages_data.append(msg_dict)
                     existing_ids.add(msg.id)
                     msg_count += 1

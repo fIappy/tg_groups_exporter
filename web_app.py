@@ -57,6 +57,10 @@ html_template = """
             <input type="number" id="max_messages_per_group" value="{max_messages_per_group}">
         </div>
         <div class="form-group">
+            <label>Max Media Size (MB):</label>
+            <input type="number" id="max_media_size_mb" value="{max_media_size_mb}">
+        </div>
+        <div class="form-group">
             <label>Group Links (one per line):</label>
             <textarea id="group_links" rows="5"></textarea>
         </div>
@@ -141,6 +145,7 @@ html_template = """
             const phone = document.getElementById('phone').value;
             const start_date = document.getElementById('start_date').value;
             const max_messages_per_group = parseInt(document.getElementById('max_messages_per_group').value, 10) || 0;
+            const max_media_size_mb = parseInt(document.getElementById('max_media_size_mb').value, 10) || 50;
             const group_links = document.getElementById('group_links').value;
             const video_cover_only = document.getElementById('video_cover_only').checked;
 
@@ -164,7 +169,7 @@ html_template = """
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     action: 'start',
-                    config: { api_id, api_hash, phone, start_date, max_messages_per_group, video_cover_only },
+                    config: { api_id, api_hash, phone, start_date, max_messages_per_group, max_media_size_mb, video_cover_only },
                     links: group_links.split('\\n').filter(l => l.trim())
                 }));
                 setTimeout(checkStatus, 1000);
@@ -232,6 +237,7 @@ async def get_index():
     html = html.replace("{phone}", str(config.PHONE or ""))
     html = html.replace("{start_date}", str(config.START_DATE or "2024-01-01"))
     html = html.replace("{max_messages_per_group}", str(getattr(config, "MAX_MESSAGES_PER_GROUP", 0)))
+    html = html.replace("{max_media_size_mb}", str(getattr(config, "MAX_MEDIA_SIZE_MB", 50)))
     html = html.replace("{video_cover_checked}", "checked" if getattr(config, "VIDEO_COVER_ONLY", False) else "")
     return html
 
@@ -415,6 +421,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 config.API_HASH = cfg.get("api_hash")
                 config.PHONE = cfg.get("phone")
                 config.START_DATE = cfg.get("start_date")
+                config.MAX_MESSAGES_PER_GROUP = int(cfg.get("max_messages_per_group") or 0)
+                config.MAX_MEDIA_SIZE_MB = int(cfg.get("max_media_size_mb") or 50)
+                config.VIDEO_COVER_ONLY = bool(cfg.get("video_cover_only", False))
                 config.save()
                 
                 # Clear queue before starting
