@@ -206,7 +206,7 @@
             </div>
             
             {% for msg in msgs %}
-            <div class="message" id="msg-{{ msg.message_id }}">
+            <div class="message" id="msg-{{ msg.message_id }}" data-sender-id="{{ msg.sender_id }}">
                 <div class="avatar" style="background-color: {{ msg.sender_id | get_color }};">
                     {{ msg.sender_name[0] if msg.sender_name else "?" }}
                 </div>
@@ -342,14 +342,19 @@
 
             <div class="nav-section">
                 <h3>Top Users</h3>
+                <div style="margin-bottom: 10px; display: flex; gap: 5px;">
+                    <button class="btn" style="flex: 1; padding: 4px;" onclick="selectAllUsers()">All</button>
+                    <button class="btn" style="flex: 1; padding: 4px;" onclick="deselectAllUsers()">None</button>
+                </div>
                 <ul class="nav-list">
                     {% for u in user_stats %}
                     <li>
-                        <div class="nav-item-primary">
-                            <span>{{ u.name }}</span>
+                        <div class="nav-item-primary" style="justify-content: flex-start; gap: 8px;">
+                            <input type="checkbox" class="user-filter-checkbox" value="{{ u.id }}" checked onchange="filterMessagesByUser()">
+                            <span style="flex-grow: 1;">{{ u.name }}</span>
                             <span class="user-count">{{ u.count }}</span>
                         </div>
-                        <div class="nav-item-secondary">
+                        <div class="nav-item-secondary" style="padding-left: 24px;">
                             ID: {{ u.id }}
                             {% if u.username %} | @{{ u.username }}{% endif %}
                             {% if u.phone %} | {{ u.phone }}{% endif %}
@@ -386,32 +391,75 @@
         function performSearch() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                const query = document.getElementById('search-input').value.toLowerCase();
-                const texts = document.querySelectorAll('.searchable');
-                
-                // Clear existing highlights
-                texts.forEach(el => {
-                    const originalHTML = el.getAttribute('data-original');
-                    if (originalHTML) {
-                        el.innerHTML = originalHTML;
-                    } else {
-                        el.setAttribute('data-original', el.innerHTML);
-                    }
-                });
-                
-                if (!query) return;
-                
-                // We'll just do a very basic filter visibility for simplicity
-                const messages = document.querySelectorAll('.message');
-                messages.forEach(msg => {
-                    const text = msg.textContent || msg.innerText;
-                    if (text.toLowerCase().includes(query)) {
-                        msg.style.display = 'flex';
-                    } else {
-                        msg.style.display = 'none';
-                    }
-                });
+                applyFilters();
             }, 300);
+        }
+
+        function selectAllUsers() {
+            document.querySelectorAll('.user-filter-checkbox').forEach(cb => cb.checked = true);
+            applyFilters();
+        }
+
+        function deselectAllUsers() {
+            document.querySelectorAll('.user-filter-checkbox').forEach(cb => cb.checked = false);
+            applyFilters();
+        }
+
+        function filterMessagesByUser() {
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const texts = document.querySelectorAll('.searchable');
+            
+            // Clear existing highlights
+            texts.forEach(el => {
+                const originalHTML = el.getAttribute('data-original');
+                if (originalHTML) {
+                    el.innerHTML = originalHTML;
+                } else {
+                    el.setAttribute('data-original', el.innerHTML);
+                }
+            });
+
+            // Get selected user IDs
+            const selectedUserIds = new Set();
+            document.querySelectorAll('.user-filter-checkbox:checked').forEach(cb => {
+                selectedUserIds.add(cb.value);
+            });
+            
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(msg => {
+                const senderId = msg.getAttribute('data-sender-id');
+                const text = msg.textContent || msg.innerText;
+                
+                const matchesSearch = !query || text.toLowerCase().includes(query);
+                const matchesUser = selectedUserIds.has(senderId);
+                
+                if (matchesSearch && matchesUser) {
+                    msg.style.display = 'flex';
+                } else {
+                    msg.style.display = 'none';
+                }
+            });
+            
+            // Hide empty date dividers
+            const dateDividers = document.querySelectorAll('.date-divider');
+            dateDividers.forEach(divider => {
+                let hasVisibleMessages = false;
+                let nextSibling = divider.nextElementSibling;
+                
+                while (nextSibling && !nextSibling.classList.contains('date-divider')) {
+                    if (nextSibling.classList.contains('message') && nextSibling.style.display !== 'none') {
+                        hasVisibleMessages = true;
+                        break;
+                    }
+                    nextSibling = nextSibling.nextElementSibling;
+                }
+                
+                divider.style.display = hasVisibleMessages ? 'block' : 'none';
+            });
         }
 
         // Lazy loading of messages using IntersectionObserver
