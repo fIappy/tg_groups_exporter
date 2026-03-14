@@ -22,6 +22,7 @@ class Config:
         self.MEDIA_TYPES_TO_DOWNLOAD = data.get("media_types_to_download", ["photo", "video", "document", "audio", "voice", "sticker"])
         self.REQUEST_DELAY = data.get("request_delay", 1.5)
         self.BATCH_SIZE = data.get("batch_size", 100)
+        self.MAX_MESSAGES_PER_GROUP = data.get("max_messages_per_group", 0)
         self.OUTPUT_FORMATS = data.get("output_formats", ["html", "excel", "json"])
         
         self.CHECKPOINT_FILE = data.get("checkpoint_file", "checkpoint.json")
@@ -42,6 +43,7 @@ class Config:
             "media_types_to_download": self.MEDIA_TYPES_TO_DOWNLOAD,
             "request_delay": self.REQUEST_DELAY,
             "batch_size": self.BATCH_SIZE,
+            "max_messages_per_group": self.MAX_MESSAGES_PER_GROUP,
             "output_formats": self.OUTPUT_FORMATS,
             "checkpoint_file": self.CHECKPOINT_FILE,
             "error_log_file": self.ERROR_LOG_FILE,
@@ -67,3 +69,4 @@ except FileNotFoundError:
     config.OUTPUT_FORMATS = ["html"]
     config.REQUEST_DELAY = 1.5
     config.BATCH_SIZE = 100
+    config.MAX_MESSAGES_PER_GROUP = 0

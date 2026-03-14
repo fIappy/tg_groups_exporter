@@ -16,6 +16,7 @@ media_types_to_download:
   - "sticker"
 request_delay: 1.5
 batch_size: 100
+max_messages_per_group: 10000
 output_formats:
   - "html"
   - "excel"

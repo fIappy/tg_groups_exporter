@@ -53,6 +53,10 @@ html_template = """
             <input type="text" id="start_date" value="{start_date}">
         </div>
         <div class="form-group">
+            <label>Max Messages Per Group (0 for unlimited):</label>
+            <input type="number" id="max_messages_per_group" value="{max_messages_per_group}">
+        </div>
+        <div class="form-group">
             <label>Group Links (one per line):</label>
             <textarea id="group_links" rows="5"></textarea>
         </div>
@@ -136,6 +140,7 @@ html_template = """
             const api_hash = document.getElementById('api_hash').value;
             const phone = document.getElementById('phone').value;
             const start_date = document.getElementById('start_date').value;
+            const max_messages_per_group = parseInt(document.getElementById('max_messages_per_group').value, 10) || 0;
             const group_links = document.getElementById('group_links').value;
             const video_cover_only = document.getElementById('video_cover_only').checked;
 
@@ -159,7 +164,7 @@ html_template = """
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     action: 'start',
-                    config: { api_id, api_hash, phone, start_date, video_cover_only },
+                    config: { api_id, api_hash, phone, start_date, max_messages_per_group, video_cover_only },
                     links: group_links.split('\\n').filter(l => l.trim())
                 }));
                 setTimeout(checkStatus, 1000);
@@ -226,6 +231,7 @@ async def get_index():
     html = html.replace("{api_hash}", str(config.API_HASH or ""))
     html = html.replace("{phone}", str(config.PHONE or ""))
     html = html.replace("{start_date}", str(config.START_DATE or "2024-01-01"))
+    html = html.replace("{max_messages_per_group}", str(getattr(config, "MAX_MESSAGES_PER_GROUP", 0)))
     html = html.replace("{video_cover_checked}", "checked" if getattr(config, "VIDEO_COVER_ONLY", False) else "")
     return html
 
